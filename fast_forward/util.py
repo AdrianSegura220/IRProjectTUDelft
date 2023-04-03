@@ -6,9 +6,33 @@ import numpy as np
 
 LOGGER = logging.getLogger(__name__)
 
+def normalize_ranking(ranking: Ranking) -> Ranking:
+    """Normalize the scores in a ranking using minimax normalization.
+
+    Args:
+        ranking (Ranking): The input ranking.
+
+    Returns:
+        Ranking: The normalized ranking.
+    """
+    normalized = defaultdict(dict)
+    for q_id in ranking:
+        min_score = min(ranking[q_id].values())
+        max_score = max(ranking[q_id].values())
+
+        if max_score == min_score:
+            for doc_id in ranking[q_id]:
+                normalized[q_id][doc_id] = 1  # or any other fixed value, as they're all the same
+        else:
+            for doc_id in ranking[q_id]:
+                normalized[q_id][doc_id] = (
+                    (ranking[q_id][doc_id] - min_score) / (max_score - min_score)
+                )
+
+    return Ranking(normalized, name=ranking.name, sort=True, copy=False)
 
 def interpolate(
-    r1: Ranking, r2: Ranking, alpha: float, name: str = None, sort: bool = True
+    r1: Ranking, r2: Ranking, alpha: float, name: str = None, sort: bool = True, normalise: bool = False
 ) -> Ranking:
     """Interpolate scores. For each query-doc pair:
         * If the pair has only one score, ignore it.
@@ -24,6 +48,11 @@ def interpolate(
     Returns:
         Ranking: Interpolated ranking.
     """
+
+    if normalise:
+        r1 = normalize_ranking(r1)
+        r2 = normalize_ranking(r2)
+
     assert r1.q_ids == r2.q_ids
     # print name of the two rankings
     print(r1.name, r2.name)
@@ -33,9 +62,11 @@ def interpolate(
             results[q_id][doc_id] = (
                 alpha * r1[q_id][doc_id] + (1 - alpha) * r2[q_id][doc_id]
             )
+    
+    
     return Ranking(results, name=name, sort=sort, copy=False)
 
-def reciprocal_rank_fusion(r1: Ranking, r2: Ranking, name: str = None, sort: bool = True) -> Ranking:
+def reciprocal_rank_fusion(r1: Ranking, r2: Ranking, name: str = None, sort: bool = True, normalise: bool = False) -> Ranking:
     """RRF For each query-doc pair:
         * If the pair has only one document, ignore it.
         * If the pair has two documents, then do rrf on both ranks
@@ -50,6 +81,11 @@ def reciprocal_rank_fusion(r1: Ranking, r2: Ranking, name: str = None, sort: boo
     Returns:
         Ranking: RRF ranking.
     """
+
+    if normalise:
+        r1 = normalize_ranking(r1)
+        r2 = normalize_ranking(r2)
+
     if r1.q_ids != r2.q_ids:
         raise ValueError("Ranking instances must have the same query IDs.")
     
@@ -105,7 +141,6 @@ def reciprocal_rank_fusion_all(r1: Ranking, r2: Ranking,eta=60,isNorm = False,ra
             if fusion[q_id][doc_id] < minScore:
                 minScore = fusion[q_id][doc_id]
     # returns a dictionary with the reciprocal rank of each document for each query
-    print(fusion[list(fusion.keys())[0]])
     return Ranking(min_max_normalization(minScore,maxScore,fusion) if isNorm else fusion, name=rankingName, sort=sort, copy=False)
 
 def min_max_normalization(minScore,maxScore,ranks):
