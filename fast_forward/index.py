@@ -426,61 +426,6 @@ class Index(abc.ABC):
         LOGGER.info(f"computed scores in  {time.time() - t0}s")
         return result
 
-    def get_scores_rrf_2(
-        self,
-        ranking: Ranking,
-        queries: Dict[str, str],
-        alpha: Union[float, Iterable[float]] = 0.0,
-        cutoff: int = None,
-        early_stopping: bool = False,
-    ) -> Dict[float, Ranking]:
-        """Compute corresponding dense scores for a ranking and use reciprocal rank fusion.
-
-        Args:
-            ranking (Ranking): The ranking to compute scores for and interpolate with.
-            queries (Dict[str, str]): Query IDs mapped to queries.
-            alpha (Union[float, Iterable[float]], optional): Interpolation weight(s). Defaults to 0.0.
-            cutoff (int, optional): Cut-off depth (documents/passages per query). Defaults to None.
-            early_stopping (bool, optional): Whether to use early stopping. Defaults to False.
-
-        Raises:
-            ValueError: When the cut-off depth is missing for early stopping.
-
-        Returns:
-            Dict[float, Ranking]: Alpha mapped to interpolated scores.
-        """
-        if isinstance(alpha, float):
-            alpha = [alpha]
-
-        if early_stopping and cutoff is None:
-            raise ValueError("A cut-off depth is required for early stopping.")
-
-        t0 = time.time()
-        print("Encoding queries for RRF...")
-        # batch encode queries
-        q_id_list = list(ranking)
-        q_reps = self.encode([queries[q_id] for q_id in q_id_list])
-
-        result = {}
-        # here we can simply compute the dense scores once and interpolate for each alpha
-        dense_run = defaultdict(OrderedDict)
-        for q_id, q_rep in zip(tqdm(q_id_list), q_reps):
-            ids = list(ranking[q_id].keys())
-            for id, score in zip(ids, self._compute_scores(q_rep, ids)):
-                if score is None:
-                    LOGGER.warning(f"{id} not indexed, skipping")
-                else:
-                    dense_run[q_id][id] = score
-        for a in alpha:
-            result[a] = sigmoid_rank_fusion(
-                ranking, Ranking(dense_run, sort=False)
-            )
-            if cutoff is not None:
-                result[a].cut(cutoff)
-    
-        LOGGER.info(f"computed scores in  {time.time() - t0}s")
-        return result
-
 
 class InMemoryIndex(Index):
     """Fast-Forward index that is held in memory."""
