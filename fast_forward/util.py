@@ -66,7 +66,7 @@ def interpolate(
     
     return Ranking(results, name=name, sort=sort, copy=False)
 
-def reciprocal_rank_fusion(r1: Ranking, r2: Ranking, name: str = None, sort: bool = True, normalise: bool = False,eta=60) -> Ranking:
+def reciprocal_rank_fusion(r1: Ranking, r2: Ranking, name: str = None, sort: bool = True, normalise: bool = False, eta=60, eta2 = 0) -> Ranking:
     """RRF For each query-doc pair:
         * If the pair has only one document, ignore it.
         * If the pair has two documents, then do rrf on both ranks
@@ -91,24 +91,24 @@ def reciprocal_rank_fusion(r1: Ranking, r2: Ranking, name: str = None, sort: boo
     
     fused_run = defaultdict(dict)
 
-    # print the names of the two rankings
-    print(r1.name, r2.name)
-
+    if eta2 == 0:
+        eta2 = eta
+    
     for q_id in r1:
         # Get the document rankings for each query in both ranking instances
         r1_ranks = r1.__getitem__(q_id)
         r2_ranks = r2.__getitem__(q_id)
 
         # sort the ranks based on score
-        r1_ranks = {eta: v for eta, v in sorted(r1_ranks.items(), key=lambda item: item[1], reverse=True)}
-        r2_ranks = {eta: v for eta, v in sorted(r2_ranks.items(), key=lambda item: item[1], reverse=True)}
+        r1_ranks = {k: v for k, v in sorted(r1_ranks.items(), key=lambda item: item[1], reverse=True)}
+        r2_ranks = {k: v for k, v in sorted(r2_ranks.items(), key=lambda item: item[1], reverse=True)}
 
         # Calculate the RRF score for each document that appears in both rankings
         for doc_id in r1_ranks.keys() & r2_ranks.keys():
             # get the index of the doc_id
             value1 = list(r1_ranks.keys()).index(doc_id)
             value2 = list(r2_ranks.keys()).index(doc_id)
-            rrf_score = (1 / (eta + value1)) + (1 / (eta + value2))
+            rrf_score = (1 / (eta + value1)) + (1 / (eta2 + value2))
             fused_run[q_id][doc_id] = rrf_score
 
     # Create a new Ranking instance with the fused rankings
