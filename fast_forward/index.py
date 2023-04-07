@@ -300,7 +300,7 @@ class Index(abc.ABC):
         alpha: Union[float, Iterable[float]] = 0.0,
         cutoff: int = None,
         early_stopping: bool = False,
-        normalise: bool = False,
+        normalise: str = "none",
     ) -> Dict[float, Ranking]:
         """Compute corresponding dense scores for a ranking and interpolate.
 
@@ -376,7 +376,8 @@ class Index(abc.ABC):
         alpha: Union[float, Iterable[float]] = 0.0,
         cutoff: int = None,
         early_stopping: bool = False,
-        normalise: bool = False
+        eta = 60,
+        eta2 = 0
     ) -> Dict[float, Ranking]:
         """Compute corresponding dense scores for a ranking and use reciprocal rank fusion.
 
@@ -417,7 +418,7 @@ class Index(abc.ABC):
                     dense_run[q_id][id] = score
         for a in alpha:
             result[a] = reciprocal_rank_fusion(
-                ranking, Ranking(dense_run, sort=False), normalise=normalise
+                ranking, Ranking(dense_run, sort=False), eta = eta, eta2 = eta2
             )
             if cutoff is not None:
                 result[a].cut(cutoff)
