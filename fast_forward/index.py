@@ -14,7 +14,7 @@ from scipy.spatial.distance import cosine
 
 from ranking import Ranking
 from encoder import QueryEncoder, TCTColBERTQueryEncoder
-from util import interpolate, reciprocal_rank_fusion, reciprocal_rank_fusion_all
+from util import interpolate, reciprocal_rank_fusion, sigmoid_rank_fusion
 
 
 LOGGER = logging.getLogger(__name__)
@@ -472,13 +472,9 @@ class Index(abc.ABC):
                 else:
                     dense_run[q_id][id] = score
         for a in alpha:
-            print("a: ", a)
-            ranking2 = Ranking(dense_run, name="idk", sort=False)
-
-            ranking.reciprocal_rank_fusion(ranking2, 60)
-            result[a] = ranking
-
-            print(type(result[a]))
+            result[a] = sigmoid_rank_fusion(
+                ranking, Ranking(dense_run, sort=False)
+            )
             if cutoff is not None:
                 result[a].cut(cutoff)
     
