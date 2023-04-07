@@ -14,7 +14,7 @@ from scipy.spatial.distance import cosine
 
 from ranking import Ranking
 from encoder import QueryEncoder, TCTColBERTQueryEncoder
-from util import interpolate, reciprocal_rank_fusion, sigmoid_rank_fusion
+from util import interpolate, reciprocal_rank_fusion
 
 
 LOGGER = logging.getLogger(__name__)
