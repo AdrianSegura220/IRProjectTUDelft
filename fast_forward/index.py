@@ -300,7 +300,7 @@ class Index(abc.ABC):
         alpha: Union[float, Iterable[float]] = 0.0,
         cutoff: int = None,
         early_stopping: bool = False,
-        normalise: bool = False,
+        normalise: str = "none",
     ) -> Dict[float, Ranking]:
         """Compute corresponding dense scores for a ranking and interpolate.
 
